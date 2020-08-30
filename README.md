@@ -1,4 +1,4 @@
-# find_dupl Search of the overexposed micrographs collected by EPU 
+# Search of the overexposed micrographs collected by EPU 
 
 Script for finding overexposed micrographs in a dataset collected by EPU. Such micrographs are the result of several exposures of the same areas. This often happens due to wrong determination of the Foilhole centers, which, in turn, can be related to the problems with eucentric height determination, image shift calibration, large beam shifts, correct hole-detection by the EPU or any other problems with the EPU software or imaging. 
 
