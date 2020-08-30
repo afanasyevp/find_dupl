@@ -1,10 +1,10 @@
 # Detection of the overexposed micrographs collected by EPU 
 
-Script for finding overexposed micrographs in datasets collected by EPU. Such micrographs are the result of several exposures of the same area. This often happens due to wrong determination of the Foilhole centres, which, in turn, can be related to the problems with eucentric height determination, image shift calibration, large beam shifts, correct hole detection by the EPU or any other problems with the EPU software or imaging. 
+Script for finding overexposed micrographs in datasets collected by the EPU. Such micrographs are the result of several exposures of the same area. This often happens due to wrong determination of the Foilhole centres. This, in turn, can be related to the problems with eucentric height determination, image shift calibration, large beam shifts, correct hole detection by the EPU or any other problems with the EPU software or imaging. 
 
-The script calibrates beam shift values recorded in the .xml files (see below), adds those to the stage positions and maps all the exposures. Within a given radius from each of the exposure, it searches for the neighbours and finds point pairs. Given the filenames, it estimates the micrographs exposed at the area later and records its name. Optionally, it can (i) output a montage png file with such pairs; (ii) search for the bad movie files and outputs those names with their full path (assuming those are .tiff files).      
+The script calibrates beam shift values recorded in the .xml files (see below), adds those to the stage positions (also from the .xml files) and maps all the exposures. Within a given radius from each of the exposure, it searches for the neighbours and finds point pairs. Given the filenames, it estimates the micrographs exposure times at the area and records the names of those, which were exposed later. Optionally, it can (i) output a montage file with such pairs (based on the .jpg images); (ii) search for the full path of the bad movie files and output those into a separate file (assuming the movies are .tiff files).      
 
-The script has to be run on the EPU data (folders with .xlm and .jpg files). It operates on AFIS datasets and should be run in two steps:
+The script has to be run on the AFIS EPU data. It requires the name of the EPU folders with .xlm and .jpg files (and access to those files). The script should be run in two steps:
 1.	The first run estimates the coefficient "k" to calibrate beam shifts (using K-means classification of the beam shift values):
 ```
 find_dupl.py --epudata ./epu_data --clusters 9
@@ -26,16 +26,15 @@ quantifoil (4 um for R2/2 Quantifoil grids) by an average of the smaller distanc
 (consider discarding outliers) or a representative small distance in the distance matrix above
 =================================================================================================
 ```
-In the output image above, we see 5 clusters, corresponding to 5 holes with 6 exposures in each. Therefore, to calibrate the values of the beam shifts, one can find the distance between the cluster centres (centres of the holes) using the output Euclidian distance matrix and compare it with the known distance between the holes. Thus, in the image above, the distance between classes #0 and #4 is 0.163 (according to the matrix), which corresponds to 4 um spacing of the Quantifoil R2/2 grids (value provided by the manufacturer). Therefore, the coefficient for beam shift calculation is 4/0.163 ≈ 25. 
+In the output image above, we see 5 clusters, corresponding to 5 holes with 6 exposures in each. Therefore, to calibrate the values of the beam shifts, one can find the distance between the cluster centres (centres of the holes) using the output Euclidian distance matrix and compare it with the known distance between the holes. Thus, in the image above, the distance between classes #0 and #4 is 0.163 (according to the matrix), which corresponds to 4 um spacing of the Quantifoil R2/2 grids (value provided by the manufacturer). Therefore, the coefficient for beam shift calculation is 4/0.163 ≈ 25. Note, that the labeling of the classes starts with 0.
 
 2. The second run allows plotting all the exposures and finding overlapping micrographs.
 ```
 find_dupl.py --epudata ./epu_data  --k 25 --montage --rawdata ./movie_files
 ```
-The script by default reads the size of the beam from all the .xml files and uses its value multiplied by 0.9 as a radius for search of overlapping exposures. This is an arbitrary value to account for precision of the performed calibration, imaging and stage stability. In the case I was testing ( ~1 um beam in diameter) values of 0.2 um to 0.8 um were producing similar results. Use --rad option to change the radius of search (in um).
+The script by default reads the sizes of the beam from all the .xml files, detects the smallest (though they should all be the same) and uses that value multiplied by 0.9 as a radius for search of overlapping exposures. This is an arbitrary value to account for precision of the performed calibration, imaging and stage stability. In the case I was testing ( ~1 um beam in diameter) values of 0.2 um to 0.8 um were producing similar results. Use --rad option to change the radius of search (in um).
 
-Use --montage option to evaluate the results: 100 pairs of jpg files will be written out into a duplicates.png file (--rescale option to have it binned by 2).
-The resulting list of files (duplicates_badfiles_tiff.txt) can be used to find movie-files, corresponding to the overexposed images.
+Use --montage option to evaluate the results: only a maximum of 100 pairs of the .jpg files (due to RAM limits) will be written out into a duplicates.png file (--rescale option to have those binned by 2 with a montage of 400 if needed). The resulting list of files (duplicates_badfiles_tiff.txt) can be used to find movie-files, corresponding to the overexposed images.
 
 Example of the output montage file:
 
