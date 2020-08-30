@@ -11,7 +11,7 @@ Example of the program output:
 
 ![alt text](https://user-images.githubusercontent.com/24687497/91664001-87380b80-eaec-11ea-843f-9bb5c8e74d25.png)
 
-
+```
 ================== Information for the estimation of the beam-shift parameters ==================
 
 Euclidian distance matrix:
@@ -29,7 +29,7 @@ quantifoil (4 um for R2/2 Quantifoil grids) by an average of the smaller distanc
 (consider discarding outliers) or a representative small distance in the distance matrix above
 
 =================================================================================================
-
+```
 In the output image, to calibrate the values of the beam shifts one can measure the distance between the cluster centres (centres of the holes) using the output Euclidian distance matrix. In the image above, the distance between classes 0 and 4 is 0.163 (according to the matrix), which corresponds to 4 um spacing of the R2/2 grids. Therefore, the coefficient for beam shift calculation is 4/0.163 ≈ 25. 
 
 
