@@ -43,3 +43,6 @@ Use --montage option to evaluate the results: 100 pairs will be written out into
 
 The resulting list of files (duplicates_badfiles_tiff.txt) can be used to find movie-files, corresponding to the overexposed images.
 
+Example of the output montage file:
+
+![alt text] (https://user-images.githubusercontent.com/24687497/91664274-5e187a80-eaee-11ea-923e-0ff5e177e16e.png)
