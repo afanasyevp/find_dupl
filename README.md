@@ -39,4 +39,4 @@ The resulting list of files (duplicates_badfiles_tiff.txt) can be used to find m
 Example of the output montage file:
 
 ![alt text](https://user-images.githubusercontent.com/24687497/91664274-5e187a80-eaee-11ea-923e-0ff5e177e16e.png)
-The output matching pairs are represented sequentially (3 pairs in each row). Note, that the first pair the second raw contains two close areas, which are significantly overlapping.
+The output matching pairs are represented sequentially (3 pairs in each row). Note, that the first pair the second raw contains two close areas, which are significantly overlapping (alsmost by half). In the presented example, the data was acquired with a K3 camera with a column of defect pixels, causing trobles for the correct determination of the hole centres.   
