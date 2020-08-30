@@ -6,7 +6,8 @@ Script for finding overexposed micrographs in a dataset collected by EPU. Such m
 The script has to be run on the EPU data (.xlm and .jpg files). It operates on the AFIS dataset and should be usually run twice:
 1.	The first run estimates the coefficient "k" to calibrate beam shifts:
 find_dupl.py --epudata . --clusters 9
-https://user-images.githubusercontent.com/24687497/91664001-87380b80-eaec-11ea-843f-9bb5c8e74d25.png
+
+![alt text](https://user-images.githubusercontent.com/24687497/91664001-87380b80-eaec-11ea-843f-9bb5c8e74d25.png)
 
 2. The second run allows plotting all the exposures and finding overlapping micrographs.
 find_dupl.py --epudata . --montage --rad 0.2 --k 25
