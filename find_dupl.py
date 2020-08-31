@@ -166,33 +166,25 @@ def generate_montage(filenames, output_fn, row_size=6, margin=3, resize=False):
     
 def main():
     output_text='''
-
 ========================================== find_dupl.py =========================================
-
 Script for finding overexposed micrographs in a dataset collected by EPU. Such micrographs are
 the result of several exposures of the same areas. This often happens due to wrong determination 
 of the Foilhole centers, which, in turn, can be related to the problems with eucentric height 
 determination, image shift calibration, large beam shifts, correct hole-detection by the EPU 
 or any other problems with the EPU software or imaging. 
-
 The script has to be run on the EPU data (.xlm and .jpg files)
-
 The script is to be operated on the AFIS datasets and should be usually run twice:
 1. The first run estimates the coefficient "k" for the beam shift estimation. 
 2. The second run allows plotting all the exposures and finding overlapping micrographs. 
-
 Outputs:
  - List of .jpg/.tiff overexposed micrographs to be deleted
  - Optionally: a .png montage of the repeating areas for checking parameters (max of 100)  
-
 Assumptions:
  - The script reads the size of the beam from the .xml files and uses its value multiplied 
  by 0.9 as a radius for the search of overlapping exposures. Use --rad to change it.
  - .xml files in the format of FoilHole_XXXXXXX_Data_XXXXXXX_XXXXXXX_YYYYMMDD_HHMMSS.xml 
-
 [version %s]
 Written and tested in python3.6 on the data produced by EPU 2.8 with AFIS
-
 Pavel Afanasyev
 https://github.com/afanasyevp/find_dupl
 -------------------------------------------------------------------------------------------------
@@ -292,12 +284,14 @@ https://github.com/afanasyevp/find_dupl
                     badfiles_jpg.append(badfile_jpg)
                     pairs.append(pair)
                     #print(pair)
-                    images_for_montage.append(os.path.basename(pair[0])+".jpg")
-                    images_for_montage.append(os.path.basename(pair[1])+".jpg")
+                    images_for_montage.append(pair[0]+".jpg")
+                    images_for_montage.append(pair[1]+".jpg")
     if pairs== []: 
         print("All exposures in the radius of %4.3f um seem unique!" %rad )
         sys.exit(2)
-    
+    for i in images_for_montage:
+
+        print(i)
     print("\nThe program has detected %i overexposed micrographs (%d %%)"%(len(badfiles_tiff), 100*len(badfiles_tiff)/len(xmlfiles)))
     
     with open('%s_badfiles_jpg.txt'%output, 'w') as f:
