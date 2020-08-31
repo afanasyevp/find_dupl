@@ -182,7 +182,7 @@ Outputs:
 Assumptions:
  - The script reads the size of the beam from the .xml files and uses its value multiplied 
  by 0.9 as a radius for the search of overlapping exposures. Use --rad to change it.
- - .xml files in the format of FoilHole_XXXXXXX_Data_XXXXXXX_XXXXXXX_YYYYMMDD_HHMMSS.xml 
+ - .xml files in the format of FoilHole_*_Data_*_*_YYYYMMDD_HHMMSS.xml 
 [version %s]
 Written and tested in python3.6 on the data produced by EPU 2.8 with AFIS
 Pavel Afanasyev
@@ -225,7 +225,7 @@ https://github.com/afanasyevp/find_dupl
         sys.exit(2)
     epudir=os.path.abspath(args.epudata)
     print("=> Working in the directory %s "%epudir)
-    xmlfiles=glob.glob("%s/**/FoilHole_???????_Data_???????_???????_????????_??????.xml"%epudir, recursive=True)
+    xmlfiles=glob.glob("%s/**/FoilHole_*_Data_*_*_*_*.xml"%epudir, recursive=True)
     if xmlfiles == []:
         print("No .xml files found! Check you input")
         sys.exit(2)
