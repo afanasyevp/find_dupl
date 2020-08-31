@@ -289,9 +289,8 @@ https://github.com/afanasyevp/find_dupl
     if pairs== []: 
         print("All exposures in the radius of %4.3f um seem unique!" %rad )
         sys.exit(2)
-    for i in images_for_montage:
-
-        print(i)
+    #for i in images_for_montage:
+    #    print(i)
     print("\nThe program has detected %i overexposed micrographs (%d %%)"%(len(badfiles_tiff), 100*len(badfiles_tiff)/len(xmlfiles)))
     
     with open('%s_badfiles_jpg.txt'%output, 'w') as f:
