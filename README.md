@@ -7,7 +7,7 @@ The script calibrates beam shift values recorded in the .xml files (see below), 
 The script has to be run on the AFIS EPU data. It requires the name of the EPU folders with .xlm and .jpg files (and access to those files). The script should be run in two steps:
 1.	The first run estimates the coefficient "k" to calibrate beam shifts (using K-means classification of the beam shift values):
 ```
-find_dupl.py --epudata ./epu_data --clusters 5
+find_dupl.py --epudata [path for the folder with all the EPU data] --clusters 5
 ```
 Example of the program output (5 clusters used):
 ![alt text](https://user-images.githubusercontent.com/24687497/91664001-87380b80-eaec-11ea-843f-9bb5c8e74d25.png)
@@ -30,9 +30,9 @@ In the output image above, we see 5 clusters, corresponding to 5 holes with 6 ex
 
 2. The second run allows plotting all the exposures and finding overlapping micrographs.
 ```
-find_dupl.py --epudata ./epu_data  --k 25 --montage --rawdata ./movie_files
+find_dupl.py --epudata [path for the folder with all the EPU data]  --k 25 --montage --rawdata [path for the folder with all movies]
 ```
-The script by default reads the sizes of the beam from all the .xml files, detects the smallest (though they should all be the same) and uses that value multiplied by 0.9 as a radius for search of overlapping exposures. This is an arbitrary value to account for precision of the performed calibration, imaging and stage stability. In the case I was testing ( ~1 um beam in diameter) values of 0.2 um to 0.8 um were producing similar results. Use --rad option to change the radius of search (in um) and lower it to avoid false-positive results.
+The script by default reads the sizes of the beam (which all should all be the same) from all the .xml files. By default, the program uses 0.2 um as a radius for search of overlapping exposures. This is an arbitrary value to account for precision of the performed calibration, imaging and stage stability. In the case I was testing (dataset with plenty of overexposed micrographs and ~1 um beam in diameter) values of 0.2 um to 0.8 um were producing similar results. Use --rad option to change the radius of search (in um) and lower it to avoid false-positive results.
 
 Use --montage option to evaluate the results: only a maximum of 100 pairs of the .jpg files (due to RAM limits) will be written out into a duplicates.png file (--rescale option to have those binned by 2 with a montage of 400 if needed). The resulting list of files (duplicates_badfiles_tiff.txt) can be used to find movie-files, corresponding to the overexposed images.
 
@@ -42,7 +42,8 @@ Example of the output montage file:
 
 The output matching pairs are represented sequentially (3 pairs in each row). Note, that the first pair in the second raw contains two close areas, which are significantly overlapping (almost by half). In the presented example, the data was acquired with a K3 camera with a column of defect pixels, causing troubles for the correct determination of the hole centres. 
 
-The results of a "healthy" dataset tipically demonstrate <0.5% (depending on the radius) of the overexposed micrographs. False-positive results can be the result of high "--rad" value, inaccurate beam-shift calibration or estimation of the calibration coefficient ("--k") in this script.
+** Validation of the results **
+The results of a "healthy" dataset tipically demonstrate <0.2% (depending on the radius) of the overexposed micrographs. False-positive results can be the result of high "--rad" value, inaccurate beam-shift calibration or estimation of the calibration coefficient ("--k") in this script.
 
 
 
