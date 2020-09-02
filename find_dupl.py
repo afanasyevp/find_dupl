@@ -1,6 +1,6 @@
 #!/home/pafanasyev/software/anaconda3/bin/python
 
-ver=200831
+ver=200902
 
 import sys
 import os
@@ -58,8 +58,13 @@ def get_beamShiftArray_stagePositionArray(xmlfiles):
     beamDiameters =[]
     for index, xmlfile in enumerate(xmlfiles):
         if len(xmlfiles) > 1000 and index % 300 ==0:  print("=> Working on %s file...     Progress: %d %% " %(xmlfile, 100*index/len(xmlfiles)))
-        xmldoc = minidom.parse("%s" %xmlfile)
-        
+        try:
+            from xml.parsers.expat import ExpatError
+            xmldoc = minidom.parse("%s" %xmlfile)
+        except ExpatError:
+            print(color.YELLOW + "WARNING! Check the %s file"%xmlfile + color.END)
+            #sys.exit(2)
+            continue
         beamshift_items = xmldoc.getElementsByTagName("BeamShift")[0]
         beamshiftx = beamshift_items.getElementsByTagName("a:_x")
         beamshifty = beamshift_items.getElementsByTagName("a:_y")
@@ -180,8 +185,8 @@ Outputs:
  - List of .jpg/.tiff overexposed micrographs to be deleted
  - Optionally: a .png montage of the repeating areas for checking parameters (max of 100)  
 Assumptions:
- - The script reads the size of the beam from the .xml files and uses its value multiplied 
- by 0.9 as a radius for the search of overlapping exposures. Use --rad to change it.
+ - The script reads the size of the beam from the .xml files. However, it uses a value of 0.2 um 
+as a radius for the search of overlapping exposures by default. Use --rad to change it.
  - .xml files in the format of FoilHole_*_Data_*_*_YYYYMMDD_HHMMSS.xml 
 [version %s]
 Written and tested in python3.6 on the data produced by EPU 2.8 with AFIS
@@ -231,13 +236,15 @@ https://github.com/afanasyevp/find_dupl
         sys.exit(2)
     #print(xmlfiles)
     beamShiftArray, stagePositionArray, beamDiameterArray = get_beamShiftArray_stagePositionArray(xmlfiles)
-    
+    dia=get_beamDia(beamDiameterArray)*1000000
     if not args.rad:
-        #The diameter is divided by 2 to get the radius in meters, multiplied by 1,000,000 to convert to microns. The result is also multiplied by 0.9 to take precision into account. This in total results in 450,000 as a coefficient in the formula below:
-        rad=get_beamDia(beamDiameterArray)*450000
-        print(color.BOLD + "Beam radius value of %4.3f um is used to find overlapping exposures \n"%rad + color.END)
+        #OLD: The diameter is divided by 2 to get the radius in meters, multiplied by 1,000,000 to convert to microns. The result is also multiplied by 0.9 to take precision into account. This in total results in 450,000 as a coefficient in the formula below:
+        #rad=get_beamDia(beamDiameterArray)*450000
+        rad=0.2
+        print(color.YELLOW + "Beam diameter: %4.3f um. To find overlapping exposures, the default value of 0.2 um will be used  \n"%dia + color.END)
     else:
         rad=float(args.rad)
+        print(color.YELLOW + "Beam diameter: %4.3f um. To find overlapping exposures, the set value of %4.3f um will be used  \n"%(dia,rad) + color.END)
 
     if not args.k:
         print("\n\n=> Running Kmeans for the coefficient estimation. ..")
@@ -283,7 +290,7 @@ https://github.com/afanasyevp/find_dupl
                     badfiles_tiff.append(badfile_tiff)
                     badfiles_jpg.append(badfile_jpg)
                     pairs.append(pair)
-                    #print(pair)
+                    print(pair)
                     images_for_montage.append(pair[0]+".jpg")
                     images_for_montage.append(pair[1]+".jpg")
     if pairs== []: 
@@ -291,7 +298,7 @@ https://github.com/afanasyevp/find_dupl
         sys.exit(2)
     #for i in images_for_montage:
     #    print(i)
-    print("\nThe program has detected %i overexposed micrographs (%d %%)"%(len(badfiles_tiff), 100*len(badfiles_tiff)/len(xmlfiles)))
+    print("\nThe program has detected %i overexposed micrographs (%4.2f %%) (overlap zone: %4.2f um)"%(len(badfiles_tiff), 100*len(badfiles_tiff)/len(xmlfiles), rad))
     
     with open('%s_badfiles_jpg.txt'%output, 'w') as f:
         for item in badfiles_jpg:
@@ -322,6 +329,6 @@ https://github.com/afanasyevp/find_dupl
                 f.write("{}\n".format(item))
  
 
-    print("\n=> The program finished successfully. Please critically check the results in the %s file." % output)
+    print("\n=> The program finished successfully. Please critically check the results in the \"%s\" files. \nNote, that false-positive results could be due to errors in determination of the stage positions and/or beam shifts for each exposure; as well as wrong beam shift calibration coefficient in this program (step 1)" % output)
 if __name__ == '__main__':
     main()
