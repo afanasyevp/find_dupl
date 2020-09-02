@@ -42,7 +42,7 @@ Example of the output montage file:
 
 The output matching pairs are represented sequentially (3 pairs in each row). Note, that the first pair in the second raw contains two close areas, which are significantly overlapping (almost by half). In the presented example, the data was acquired with a K3 camera with a column of defect pixels, causing troubles for the correct determination of the hole centres. 
 
-** Validation of the results **
+**Validation of the results**
 The results of a "healthy" dataset tipically demonstrate <0.2% (depending on the radius) of the overexposed micrographs. False-positive results can be the result of high "--rad" value, inaccurate beam-shift calibration or estimation of the calibration coefficient ("--k") in this script.
 
 
