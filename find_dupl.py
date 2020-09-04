@@ -1,6 +1,6 @@
 #!/home/pafanasyev/software/anaconda3/bin/python
 
-ver=200902
+ver=200904
 
 import sys
 import os
@@ -157,7 +157,8 @@ def generate_montage(filenames, output_fn, row_size=6, margin=3, resize=False):
     font = ImageFont.load_default()
     for i,image in enumerate(images):
         draw = ImageDraw.Draw(image)
-        draw.text((0, 0), filenames[i])
+        #print(os.path.basename(filenames[i]))
+        draw.text((0, 0), os.path.basename(filenames[i]))
         montage.paste(image, (offset_x, offset_y))
         max_x = max(max_x, offset_x + image.size[0])
         max_y = max(max_y, offset_y + image.size[1])
@@ -272,34 +273,59 @@ https://github.com/afanasyevp/find_dupl
     #plt.hist2d(x, y, (100,100), cmap=plt.cm.jet)
     #plt.colorbar()
     #plt.show()
-    
+    point_tree = spatial.cKDTree(exposuresArray_um)
+    points=point_tree.query_ball_point(exposuresArray_um, rad)
     badfiles_jpg=[]
     badfiles_tiff=[]
-    pairs=[]
-    point_tree = spatial.cKDTree(exposuresArray_um)
     images_for_montage=[]
-    for name, point  in zip(xmlfiles, exposuresArray_um):
-        for i in point_tree.query_ball_point(point, rad):
-            if name != xmlfiles[i]:
-                a=name[:-4]
-                b=xmlfiles[i][:-4]
-                pair=sorted([a,b], key=lambda x: x[-15:])
-                badfile_jpg=pair[1]+".jpg"
-                badfile_tiff=os.path.basename(pair[1])+"_fractions.tiff"
-                if badfile_tiff not in badfiles_tiff: 
+    point_numbers_uniq=[]
+    dupl_xmls=[]
+    count_doubles=[] # list with the number of double exposures around in each location
+    for point_name, list_of_point_numbers in zip(xmlfiles, points):
+        #print("name:", point_name, point_name[:-4], "\n")
+        #print(list_of_point_numbers)
+        point_number=list_of_point_numbers[0]
+        #print("point_number", point_number)
+        if len(list_of_point_numbers) >1 and list_of_point_numbers not in point_numbers_uniq:
+            point_numbers_uniq.append(list_of_point_numbers)
+            #print(list_of_point_numbers)
+            a=point_name[:-4]
+            b=[]
+            #print(list_of_point_numbers_uniq, "list_of_point_numbers")
+            for i in list_of_point_numbers:
+                b.append(xmlfiles[i])
+            dupl_xmls_each_point=sorted(b, key=lambda x: x[-19:])  #sorted xml list for each point 
+            dupl_xmls.append(dupl_xmls_each_point)
+            count_doubles.append(len(dupl_xmls_each_point)-1)
+            #print("dupl:", dupl_xmls_each_point[:1])
+            #print("dupl_xmls_each_point", dupl_xmls_each_point)
+            #print("dupl_xmls_each_point", dupl_xmls_each_point)
+            #images for montage are: image taken first and its duplicate (second); image taken first and its duplicate (third); etc.
+            if len(dupl_xmls_each_point)==2:
+                badfiles_jpg.append(dupl_xmls_each_point[1][:-4]+".jpg")
+                badfile_tiff=os.path.basename(dupl_xmls_each_point[1][:-4])+"_fractions.tiff"
+                badfiles_tiff.append(badfile_tiff)
+                images_for_montage.append(dupl_xmls_each_point[0][:-4]+".jpg")
+                images_for_montage.append(dupl_xmls_each_point[1][:-4]+".jpg")
+                #print("to del:", [(dupl_xmls_each_point[1][:-4]+".jpg")] )
+            else:
+                for i in dupl_xmls_each_point[1:]:
+                    #print(i)
+                    #print("to del: ", i[-11:-4]+".jpg")
+                    badfile_tiff=os.path.basename(i[:-4])+"_fractions.tiff"
+                    badfiles_jpg.append(i[:-4]+".jpg")
                     badfiles_tiff.append(badfile_tiff)
-                    badfiles_jpg.append(badfile_jpg)
-                    pairs.append(pair)
-                    print(pair)
-                    images_for_montage.append(pair[0]+".jpg")
-                    images_for_montage.append(pair[1]+".jpg")
-    if pairs== []: 
-        print("All exposures in the radius of %4.3f um seem unique!" %rad )
-        sys.exit(2)
-    #for i in images_for_montage:
-    #    print(i)
+                    images_for_montage.append(dupl_xmls_each_point[0][:-4]+".jpg")
+                    images_for_montage.append(i[:-4]+".jpg")
+                #badfiles_jpg=badfiles_jpg[1:]
+    count_doubles_dict = {i:count_doubles.count(i) for i in count_doubles}
+    #print("count_doubles_dict:", count_doubles_dict)
+    if dupl_xmls== []: 
+         print("All exposures in the radius of %4.3f um seem unique!" %rad )
+         sys.exit(2)
+
     print("\nThe program has detected %i overexposed micrographs (%4.2f %%) (overlap zone: %4.2f um)"%(len(badfiles_tiff), 100*len(badfiles_tiff)/len(xmlfiles), rad))
-    
+
     with open('%s_badfiles_jpg.txt'%output, 'w') as f:
         for item in badfiles_jpg:
             f.write("{}\n".format(item))
@@ -327,8 +353,10 @@ https://github.com/afanasyevp/find_dupl
         with open('%s_badfiles_tiff.txt'%output, 'w') as f:
             for item in badfiles_tiff:
                 f.write("{}\n".format(item))
- 
+
 
     print("\n=> The program finished successfully. Please critically check the results in the \"%s\" files. \nNote, that false-positive results could be due to errors in determination of the stage positions and/or beam shifts for each exposure; as well as wrong beam shift calibration coefficient in this program (step 1)" % output)
 if __name__ == '__main__':
     main()
+      
+      
