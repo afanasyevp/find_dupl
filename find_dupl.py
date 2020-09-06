@@ -1,6 +1,6 @@
 #!/home/pafanasyev/software/anaconda3/bin/python
 
-ver=200904
+ver=200906
 
 import sys
 import os
@@ -15,21 +15,23 @@ from xml.dom import minidom
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import euclidean_distances
 import scipy.spatial as spatial
+from datetime import datetime
 from PIL import Image
 Image.MAX_IMAGE_PIXELS = None
 from PIL import ImageFont
 from PIL import ImageDraw 
+
 class color:
-   PURPLE = '\033[95m'
-   CYAN = '\033[96m'
-   DARKCYAN = '\033[36m'
-   BLUE = '\033[94m'
-   GREEN = '\033[92m'
-   YELLOW = '\033[93m'
-   RED = '\033[91m'
-   BOLD = '\033[1m'
-   UNDERLINE = '\033[4m'
-   END = '\033[0m'
+    PURPLE = '\033[95m'
+    CYAN = '\033[96m'
+    DARKCYAN = '\033[36m'
+    BLUE = '\033[94m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    RED = '\033[91m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+    END = '\033[0m'
 
 def find_fullPath(searchDirectory, listOfFiles):
     '''
@@ -45,24 +47,47 @@ def find_fullPath(searchDirectory, listOfFiles):
                 listOfFilesWithFullPath.append(i)
     return listOfFilesWithFullPath
 
+def get_timeStamp(xmlFile):
+    '''
+    Returns timestamp of the given .xml or .jpg file named as "*_YYYYMMDD_HHMMSS.*". Only one "." can be in the basename.
+    '''
+    d=os.path.basename(xmlFile).split(".")[0][-15:]
+    timeStamp = datetime.strptime(d,  "%Y%m%d_%H%M%S")
+    #print(d, d.strftime("%Y%m%d_%H%M%S"))
+    return timeStamp 
 
+def get_foilHoleImagename(xmlFile, foilHoleFiles):
+    '''
+    For a given xmlFile finds corresponding foilHoleFile.
+    FoilHoles in EPU 2.7 are collected twice: before and after centering with an interval of ~5 sec. This function returns the second (centered) Foilhole
+    '''
+    foilHoleFilesTimeStamps=[get_timeStamp(foilHoleFile) for foilHoleFile in foilHoleFiles]
+    #print("=> Determining Foilholes...")
+    foilHoleImageTimeStamp=min([i for i in foilHoleFilesTimeStamps if i < get_timeStamp(xmlFile)], key=lambda x: abs(x - get_timeStamp(xmlFile)))
+    for foilHoleFile in foilHoleFiles:
+        if foilHoleImageTimeStamp.strftime("%Y%m%d_%H%M%S") in foilHoleFile:
+            foilHoleImageName=foilHoleFile
+    #print(xmlFile)
+    #print(foilHoleImageName)
+    #print(foilHoleImageTimeStamp)
+    return foilHoleImageName
 
-def get_beamShiftArray_stagePositionArray(xmlfiles):
+def get_beamShiftArray_stagePositionArray(xmlFiles):
     '''
     Returns arrays from the .xml files:
     beamShiftArray, stagePositionArray, beamDiameterArray
     '''
-    print("=> Analysing %d .xml files... "%len(xmlfiles))
+    print("=> Analysing %d .xml files... "%len(xmlFiles))
     beamShifts = []
     stagePositions = []
     beamDiameters =[]
-    for index, xmlfile in enumerate(xmlfiles):
-        if len(xmlfiles) > 1000 and index % 300 ==0:  print("=> Working on %s file...     Progress: %d %% " %(xmlfile, 100*index/len(xmlfiles)))
+    for index, xmlFile in enumerate(xmlFiles):
+        if len(xmlFiles) > 1000 and index % 300 ==0:  print("=> Working on %s file...     Progress: %d %% " %(xmlFile, 100*index/len(xmlFiles)))
         try:
             from xml.parsers.expat import ExpatError
-            xmldoc = minidom.parse("%s" %xmlfile)
+            xmldoc = minidom.parse("%s" %xmlFile)
         except ExpatError:
-            print(color.YELLOW + "WARNING! Check the %s file"%xmlfile + color.END)
+            print(color.YELLOW + "WARNING! Check the %s file"%xmlFile + color.END)
             #sys.exit(2)
             continue
         beamshift_items = xmldoc.getElementsByTagName("BeamShift")[0]
@@ -137,7 +162,7 @@ def kmeansClustering(nClusters, inputArray, maxIter, nInit):
     plt.show()
     return pred_y
 
-def generate_montage(filenames, output_fn, row_size=6, margin=3, resize=False):
+def generate_montage(filenames, output_fn, row_size=4, margin=3, resize=False):
     '''
     Creates a .png montage of input files 
     '''
@@ -158,7 +183,8 @@ def generate_montage(filenames, output_fn, row_size=6, margin=3, resize=False):
     for i,image in enumerate(images):
         draw = ImageDraw.Draw(image)
         #print(os.path.basename(filenames[i]))
-        draw.text((0, 0), os.path.basename(filenames[i]))
+        #draw.text((0, 0), os.path.basename(filenames[i]))
+        draw.text((0, 0), str(get_timeStamp(filenames[i])))
         montage.paste(image, (offset_x, offset_y))
         max_x = max(max_x, offset_x + image.size[0])
         max_y = max(max_y, offset_y + image.size[1])
@@ -184,7 +210,7 @@ The script is to be operated on the AFIS datasets and should be usually run twic
 2. The second run allows plotting all the exposures and finding overlapping micrographs. 
 Outputs:
  - List of .jpg/.tiff overexposed micrographs to be deleted
- - Optionally: a .png montage of the repeating areas for checking parameters (max of 100)  
+ - Optionally: a montage of overexposed areas with corresponding Foilholes images (max of 100)  
 Assumptions:
  - The script reads the size of the beam from the .xml files. However, it uses a value of 0.2 um 
 as a radius for the search of overlapping exposures by default. Use --rad to change it.
@@ -195,7 +221,6 @@ Pavel Afanasyev
 https://github.com/afanasyevp/find_dupl
 -------------------------------------------------------------------------------------------------
 ''' % ver 
-    
     parser = argparse.ArgumentParser(description="")
     #add=parser.add_argument
     parser.add_argument('--epudata', type=str, default="./", help="Directory with the EPU data (xml and jpg) files. By default, current folder is used.", metavar='')
@@ -222,21 +247,23 @@ https://github.com/afanasyevp/find_dupl
         sys.exit(2)
     if len(sys.argv) == 1:
         sys.exit(2)
-    #if args.epudata[-1] != "/":
-    #    epudir=args.epudata+"/"
-    #else:
-    #    epudir=args.epudata
     if not os.path.exists(args.epudata):
         print("Input directory '%s' not found." % args.epudata)
         sys.exit(2)
     epudir=os.path.abspath(args.epudata)
     print("=> Working in the directory %s "%epudir)
-    xmlfiles=glob.glob("%s/**/FoilHole_*_Data_*_*_*_*.xml"%epudir, recursive=True)
-    if xmlfiles == []:
+    
+    xmlFiles=glob.glob("%s/**/FoilHole_*_Data_*_*_*_*.xml"%epudir, recursive=True)
+    if xmlFiles == []:
         print("No .xml files found! Check you input")
         sys.exit(2)
-    #print(xmlfiles)
-    beamShiftArray, stagePositionArray, beamDiameterArray = get_beamShiftArray_stagePositionArray(xmlfiles)
+    foilHoleFiles=glob.glob("%s/**/FoilHoles/FoilHole*_*_*_*.jpg"%epudir, recursive=True)
+    if foilHoleFiles==[]:
+        print(color.red+ "WARNING: no Foilhole files found!"+ color.END)
+    
+    #foilHoleFiles=[get_foilHoleImagename(i, foilHoleFiles) for i in xmlFiles]
+    #print(foilHoleFiles)
+    beamShiftArray, stagePositionArray, beamDiameterArray = get_beamShiftArray_stagePositionArray(xmlFiles)
     dia=get_beamDia(beamDiameterArray)*1000000
     if not args.rad:
         #OLD: The diameter is divided by 2 to get the radius in meters, multiplied by 1,000,000 to convert to microns. The result is also multiplied by 0.9 to take precision into account. This in total results in 450,000 as a coefficient in the formula below:
@@ -281,7 +308,9 @@ https://github.com/afanasyevp/find_dupl
     point_numbers_uniq=[]
     dupl_xmls=[]
     count_doubles=[] # list with the number of double exposures around in each location
-    for point_name, list_of_point_numbers in zip(xmlfiles, points):
+    count_missedStageMove=0
+    print("=> Searching for double-exposures and corresponding FoilHoles. If you have a large dataset, this might take a few minutes")
+    for point_name, list_of_point_numbers in zip(xmlFiles, points):
         #print("name:", point_name, point_name[:-4], "\n")
         #print(list_of_point_numbers)
         point_number=list_of_point_numbers[0]
@@ -293,7 +322,7 @@ https://github.com/afanasyevp/find_dupl
             b=[]
             #print(list_of_point_numbers_uniq, "list_of_point_numbers")
             for i in list_of_point_numbers:
-                b.append(xmlfiles[i])
+                b.append(xmlFiles[i])
             dupl_xmls_each_point=sorted(b, key=lambda x: x[-19:])  #sorted xml list for each point 
             dupl_xmls.append(dupl_xmls_each_point)
             count_doubles.append(len(dupl_xmls_each_point)-1)
@@ -305,8 +334,21 @@ https://github.com/afanasyevp/find_dupl
                 badfiles_jpg.append(dupl_xmls_each_point[1][:-4]+".jpg")
                 badfile_tiff=os.path.basename(dupl_xmls_each_point[1][:-4])+"_fractions.tiff"
                 badfiles_tiff.append(badfile_tiff)
+                temp1=get_foilHoleImagename(dupl_xmls_each_point[0], foilHoleFiles)
+                temp2=get_foilHoleImagename(dupl_xmls_each_point[1], foilHoleFiles)
                 images_for_montage.append(dupl_xmls_each_point[0][:-4]+".jpg")
                 images_for_montage.append(dupl_xmls_each_point[1][:-4]+".jpg")
+                images_for_montage.append(temp1)
+                images_for_montage.append(temp2)
+
+                if temp1 == temp2:
+                    count_missedStageMove+=1
+                #else:
+                    #print(temp1, temp2)
+                    #images_for_montage.append(dupl_xmls_each_point[0][:-4]+".jpg")
+                    #images_for_montage.append(dupl_xmls_each_point[1][:-4]+".jpg")
+                    #images_for_montage.append(temp1)
+                    #images_for_montage.append(temp2)
                 #print("to del:", [(dupl_xmls_each_point[1][:-4]+".jpg")] )
             else:
                 for i in dupl_xmls_each_point[1:]:
@@ -315,8 +357,21 @@ https://github.com/afanasyevp/find_dupl
                     badfile_tiff=os.path.basename(i[:-4])+"_fractions.tiff"
                     badfiles_jpg.append(i[:-4]+".jpg")
                     badfiles_tiff.append(badfile_tiff)
+                    temp1=get_foilHoleImagename(dupl_xmls_each_point[0], foilHoleFiles)
+                    temp2=get_foilHoleImagename(i[:-4], foilHoleFiles)
                     images_for_montage.append(dupl_xmls_each_point[0][:-4]+".jpg")
                     images_for_montage.append(i[:-4]+".jpg")
+                    images_for_montage.append(temp1)
+                    images_for_montage.append(temp2)
+                    if temp1 == temp2:
+                        count_missedStageMove+=1
+                        #print(temp1, temp2)
+                    #else:
+                        #images_for_montage.append(dupl_xmls_each_point[0][:-4]+".jpg")
+                        #images_for_montage.append(i[:-4]+".jpg")
+                        #images_for_montage.append(temp1)
+                        #images_for_montage.append(temp2)
+
                 #badfiles_jpg=badfiles_jpg[1:]
     count_doubles_dict = {i:count_doubles.count(i) for i in count_doubles}
     #print("count_doubles_dict:", count_doubles_dict)
@@ -324,19 +379,20 @@ https://github.com/afanasyevp/find_dupl
          print("All exposures in the radius of %4.3f um seem unique!" %rad )
          sys.exit(2)
 
-    print("\nThe program has detected %i overexposed micrographs (%4.2f %%) (overlap zone: %4.2f um)"%(len(badfiles_tiff), 100*len(badfiles_tiff)/len(xmlfiles), rad))
-
+    print("\nThe program has detected %i overexposed micrographs (%4.2f %%) (overlap zone: %4.2f um)"%(len(badfiles_tiff), 100*len(badfiles_tiff)/len(xmlFiles), rad))
+    if count_missedStageMove !=0:
+        print("\n%d double-exposures are taken from exactly the same stage position (after all exposures from each stage position, EPU did not move the stage to the next FoilHole position but instead continued collecting)"%count_missedStageMove)
     with open('%s_badfiles_jpg.txt'%output, 'w') as f:
         for item in badfiles_jpg:
             f.write("{}\n".format(item))
     
     if args.resize == True:
         print("=> Generating a montage image %s.png with the results..."%os.path.splitext(output)[0] )
-        if len(images_for_montage) <=400: generate_montage(images_for_montage, os.path.splitext(output)[0]+".png", row_size=12, margin=1, resize=True)
-        else: generate_montage(images_for_montage[:399], os.path.splitext(output)[0]+"_400.png", resize=True)
+        if len(images_for_montage) <=400: generate_montage(images_for_montage, os.path.splitext(output)[0]+"_all_resize.png", row_size=12, margin=1, resize=True)
+        else: generate_montage(images_for_montage[:399], os.path.splitext(output)[0]+"_400_resize.png", row_size=12, margin=1,  resize=True)
     elif args.montage == True:
         print("=> Generating a montage image %s.png with the results..."%os.path.splitext(output)[0] )
-        if len(images_for_montage) <=100: generate_montage(images_for_montage, os.path.splitext(output)[0]+".png")
+        if len(images_for_montage) <=100: generate_montage(images_for_montage, os.path.splitext(output)[0]+"_all.png")
         else: generate_montage(images_for_montage[0:99], os.path.splitext(output)[0]+"_100.png")
     if args.rawdata:
         rawdatadir=os.path.abspath(args.rawdata)
@@ -354,9 +410,7 @@ https://github.com/afanasyevp/find_dupl
             for item in badfiles_tiff:
                 f.write("{}\n".format(item))
 
-
     print("\n=> The program finished successfully. Please critically check the results in the \"%s\" files. \nNote, that false-positive results could be due to errors in determination of the stage positions and/or beam shifts for each exposure; as well as wrong beam shift calibration coefficient in this program (step 1)" % output)
 if __name__ == '__main__':
     main()
-      
-      
+
